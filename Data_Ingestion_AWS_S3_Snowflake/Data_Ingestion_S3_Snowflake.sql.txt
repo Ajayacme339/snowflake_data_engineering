@@ -1,0 +1,65 @@
+
+------------Set Account Details ---------------------------
+USE ROLE ACCOUNTADMIN
+USE DATABASE SNOWFLAKE_LEARNING_DB
+USE WAREHOUSE SNOWFLAKE_LEARNING_WH 
+USE SCHEMA AKUMAR2104_LOAD_SAMPLE_DATA_FROM_S3 
+--------------------------Create Table Menu------------------------------------
+CREATE OR REPLACE TABLE MENU
+(
+    menu_id NUMBER(19,0),
+    menu_type_id NUMBER(38,0),
+    menu_type VARCHAR(16777216),
+    truck_brand_name VARCHAR(16777216),
+    menu_item_id NUMBER(38,0),
+    menu_item_name VARCHAR(16777216),
+    item_category VARCHAR(16777216),
+    item_subcategory VARCHAR(16777216),
+    cost_of_goods_usd NUMBER(38,4),
+    sale_price_usd NUMBER(38,4),
+    menu_item_health_metrics_obj VARIANT
+);
+
+select * from menu
+--------------Create stage and Copy files from s3 bucket to blog_stage1
+
+CREATE OR REPLACE STAGE blog_stage1 
+URL = 's3://sfquickstarts/tastybytes/'
+FILE_FORMAT = (type=csv);
+
+
+LIST @blog_stage1/raw_pos/menu/;
+----------------Copy from stage to menu table in snowflake -------------------------
+COPY INTO MENU 
+from @blog_stage1/raw_pos/menu/;
+----------------- count all rows from menu --------------------------------
+select count(*) as ROW_COUNT from menu 
+---------------------select top 20 records--------------------------------------------------------
+select * from menu 
+limit 20;
+------------------------check what menu items Freezing Point TRuck Brand Name has -----------------
+SELECT
+   menu_item_name
+FROM menu
+WHERE truck_brand_name = 'Freezing Point';
+---------------------------------------------------------------------------------------------------
+---> to finish, let's extract the Mango Sticky Rice ingredients from the semi-structured column
+SELECT
+    m.menu_item_name,
+    obj.value:"ingredients"::ARRAY AS ingredients
+FROM menu m,
+    LATERAL FLATTEN (input => m.menu_item_health_metrics_obj:menu_item_health_metrics) obj
+WHERE TRUE
+AND truck_brand_name = 'Freezing Point'
+AND menu_item_name = 'Mango Sticky Rice';
+---------------------------------------------------------------------------------------------
+
+
+
+
+
+
+)
+
+
+
